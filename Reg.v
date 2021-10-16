@@ -60,7 +60,6 @@ Proof.
                     +   move /set1P ->; apply /setDP; split.
                         -   apply /set1P => //.
                         -   rewrite -Heqb => //.
-
                 move ->; apply reg1.
         -   apply IHl => //.
 Qed.              
@@ -88,7 +87,53 @@ Proof.
             apply extension; apply /subsetP => x.
             *   case /setIP; move /set1P ->; rewrite -Heqb => //.
             *   rewrite (in_set0 x) => //.
-Qed.            
+Qed.
+
+Lemma setTreg : Reg setT.
+Proof.
+    rewrite -(set_enum setT).
+    induction (enum setT).
+    +   rewrite -enum_set0.
+        rewrite (set_enum ∅).
+        constructor.
+    +   rewrite set_cons; constructor => //.
+        apply reg1.
+Qed.   
+
+Lemma setTDreg R : Reg R -> Reg (setT // R).
+Proof.
+    move => H; apply setDreg => //; apply setTreg.
+Qed.
+
+Lemma setCreg R : Reg R -> Reg (¬ R).
+Proof.
+    rewrite -setTD; apply setTDreg.
+Qed.
+
+Lemma setEreg R n :  Reg R -> Reg (R^n).
+Proof.
+    induction n => /= H.
+    +   apply reg1.
+    +   constructor => //; apply IHn => //.
+Qed.
+
+Lemma setK'reg R : Reg R -> Reg (R^+).
+Proof.
+    move => H.
+    apply setDreg.
+    +   by apply setKreg.
+    +   by apply reg1.
+Qed.    
+
+    
+
+
+
+
+    
+
+
+
 
 
     

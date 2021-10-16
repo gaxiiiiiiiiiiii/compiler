@@ -59,6 +59,8 @@ Notation "X ^*" := (setK X)(at level 30).
 Axiom setKP : forall (X : Σ) (x : finStr),
     reflect (exists n, x ∈ X ^ n)(x ∈ X^* ).
 
+Notation "X ^+" := (X^* // ϵ)(at level 30).    
+
 
 
 
@@ -84,7 +86,7 @@ Proof.
 Qed.
 
 
-Lemma setA0l X : ϵ ⋅ X = X.
+Lemma setAnill X : ϵ ⋅ X = X.
 Proof.
     apply extension; apply /subsetP => x H.
     +   move /setAP : H => [n [x_ [Hn [Hx Hnx]]]].
@@ -95,7 +97,7 @@ Proof.
         apply /set1P => //.
 Qed.
 
-Lemma setA0r X : X ⋅ ϵ = X.
+Lemma setAnilr X : X ⋅ ϵ = X.
 Proof.
     apply extension; apply /subsetP => x H.
     +   move /setAP : H => [x_ [n [Hx [Hn Hxn]]]].
@@ -107,6 +109,57 @@ Proof.
         rewrite cats0 => //.
 Qed.
 
+Lemma setA0l X : ∅ ⋅ X = ∅.
+Proof.
+    apply extension; apply /subsetP => x.
+    +   move /setAP => [y [_ [F _]]].
+        move : (in_set0 y); rewrite F => //.
+    +   move => F; move : (in_set0 x); rewrite F => //.
+Qed.
+
+Lemma setA0r X : X ⋅ ∅ = ∅.
+Proof.
+    apply extension; apply /subsetP => x.
+    +   move /setAP => [_ [y [_ [F _]]]].
+        move : (in_set0 y); rewrite F => //.
+    +   move => F; move : (in_set0 x); rewrite F => //.
+Qed.     
+
+
+Lemma cat1A (x y : finStr) :
+    [set x ++ y : finStr] = [set x] ⋅ [set y].
+Proof.
+    apply extension; apply /subsetP => a.
+    move /set1P ->; apply /setAP; exists x, y; 
+        repeat split;apply /set1P => //.
+    move /setAP => [x0 [y0 [/set1P Hx0 [/set1P Hy0 Ha]]]]; 
+        subst; apply /set1P => //.
+Qed.
+
+Lemma enum_nil {T : finType}:
+    [set x in ([::] : seq T)] = ∅.
+Proof.
+    rewrite -enum_set0 (set_enum ∅) => //.
+Qed.  
+
+Lemma set0A : 
+    ∅ ⋅ ∅ = ∅.
+Proof.
+    apply extension; apply /subsetP => x.
+    +   move /setAP => [_ [y [_ [Hy _]]]].
+        move : (in_set0 y); rewrite Hy => //.
+    +   move => F; move : (in_set0 x); rewrite F => //.
+Qed.
+
+Lemma set0K : 
+    ∅^* = ϵ.
+Proof.
+    apply extension; apply /subsetP => x; first last.
+    +   move /set1P ->; apply /setKP; exists 0 => /=; apply /set1P => //.
+    +   move /setKP => [n Hn]; move : Hn.
+        induction n => //=.
+        rewrite setA0r => F; move : (in_set0 x); rewrite F => //.
+Qed.        
 
 
 

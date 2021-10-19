@@ -3,82 +3,71 @@ Require Export Base.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(* 各種方の定義 *)
-(* symbol     : 記号 *)
-(* seq symbol : 文字列 *)
-(* Σ          : 文字列の有限集合 *)
 
 
-Section Str.
+Module Str.
 
-Parameter symbol : finType.
-Parameter base_str : seq (seq symbol).
+Record str: Type := mkStr {
+    char : finType;
+    base : seq (seq char);
+    uniq_str : uniq base;
+    total_str : forall x : seq char, x \in base;
+}.
 
-Axiom uniq_str : uniq base_str.
-Axiom mem_str : forall x : seq symbol, x \in base_str.
-Definition str_finMixin := UniqFinMixin uniq_str mem_str.
-Canonical finStr := FinType (seq symbol) str_finMixin.
 
-Definition Σ := {set finStr}.
-Definition ϵ : finStr := nil.
+Coercion FinStr (string : str) :=
+    FinType (seq (char string)) (UniqFinMixin (uniq_str  string) (total_str  string)).
+
+Canonical FinStr.
 
 End Str.
 
 
+Module Lang.
+Export Str.
+
+Record lang : Type := mkLang {
+    finStr_ : str;
+    setA : {set finStr_} -> {set finStr_} -> {set finStr_};
+    setE : {set finStr_} -> nat -> {set finStr_};
+    setK : {set finStr_} -> {set finStr_};
+    setAP_ : forall (X Y : {set finStr_}) xy,
+            reflect (exists x y, x ∈ X /\ y ∈ Y /\ xy = x ++ y)(xy ∈ setA X Y);
+    setEP_ : forall (X : {set finStr_}) n xx,
+            reflect 
+                (match n with 
+                    | O => xx == [::]
+                    | S n' => xx ∈ setA (setE X n') X
+                end)
+                (xx ∈ setE X n);
+    setKP_ : forall (X : {set finStr_}) xx,
+            reflect (exists n, xx ∈ setE X n)(xx ∈ setK X)
+
+}.
+
+Coercion Lang (l : lang) := {set (finStr_ l)}.
+Notation "X ⋅ Y" := (setA _ X Y)(at level 30).
+Notation "X ^ n" := (setE _ X n).
+Notation "X ^*"  := (setK _ X)(at level 30).
+Definition setAP {Σ : lang} := setAP_ Σ.
+Definition setEP {Σ : lang} := setEP_ Σ.
+Definition setKP {Σ : lang} := setKP_ Σ.
+Definition ϵ {Σ : lang} : finStr_ Σ := [::].
 
 
-
-Ltac str_ind R := rewrite -(set_enum R); induction (enum R). 
-Ltac nil_set0 := rewrite -enum_set0; rewrite (set_enum set0).  
-
-
-
-
-(* 文字列の結合を文字列集合へ拡張 *)
-(* X ⋅ Y := [x ++ y | x ∈ Y, y ∈ Y] *)
-
-Definition setA (X Y : Σ) : Σ :=
-    [set ((x : finStr) ++ (y : finStr) : finStr) | x in X, y in Y].
-Notation "X ⋅ Y" := (setA X Y)(at level 50).
-
-Lemma setAP (X Y : Σ) xy: 
-    reflect (exists x y, x ∈ X /\ y ∈ Y /\ xy = x ++ y)(xy ∈ X ⋅ Y).
-Proof.
-    apply (iffP idP).
-    +   move /imset2P => [x y Hx Hy Hxy].
-        exists x, y => //.
-    +   move => [x [y [Hx [Hy Hxy]]]].
-        apply /imset2P.
-        eapply (Imset2spec Hx Hy) => //.
-Qed.
-
-
-(* クリーネ閉包 *)
-(* setK X := ⊔ [X^n | 0 <= n ] *)
-
-
-Fixpoint setE X n : Σ :=
-    match n with
-    | O => [set ϵ] 
-    | S n' => setE X n' ⋅ X
-    end.
-Notation "X ^ n" := (setE X n).
-
-
-Axiom setK : Σ -> Σ.
-Notation "X ^*" := (setK X)(at level 30).
-Axiom setKP : forall (X : Σ) (x : finStr),
-    reflect (exists n, x ∈ X ^ n)(x ∈ X^* ).
-
-Notation "X ^+" := (X^* // [set ϵ])(at level 30).    
+End Lang.
 
 
 
 
+Section Properties.
+Import Lang.
 
-(* 各種定理 *)       
+Variable Σ : lang.
+Notation finStr := (finStr_ Σ).
 
-Lemma setAA X Y Z :
+
+Lemma setAA (X Y Z : Σ):
      X ⋅ (Y ⋅ Z)= (X ⋅ Y) ⋅ Z.
 Proof.
     apply extension; apply /subsetP => xyz H.
@@ -97,7 +86,8 @@ Proof.
 Qed.
 
 
-Lemma setAnill X : [set ϵ] ⋅ X = X.
+Lemma setAnill (X : Σ) : 
+    [set ϵ] ⋅ X = X.
 Proof.
     apply extension; apply /subsetP => x H.
     +   move /setAP : H => [n [x_ [Hn [Hx Hnx]]]].
@@ -108,7 +98,8 @@ Proof.
         apply /set1P => //.
 Qed.
 
-Lemma setAnilr X : X ⋅ [set ϵ] = X.
+Lemma setAnilr (X : Σ) : 
+    X ⋅ [set ϵ] = X.
 Proof.
     apply extension; apply /subsetP => x H.
     +   move /setAP : H => [x_ [n [Hx [Hn Hxn]]]].
@@ -120,7 +111,8 @@ Proof.
         rewrite cats0 => //.
 Qed.
 
-Lemma setA0l X : ∅ ⋅ X = ∅.
+Lemma setA0l (X : Σ) :
+    ∅ ⋅ X = ∅.
 Proof.
     apply extension; apply /subsetP => x.
     +   move /setAP => [y [_ [F _]]].
@@ -128,7 +120,8 @@ Proof.
     +   move => F; move : (in_set0 x); rewrite F => //.
 Qed.
 
-Lemma setA0r X : X ⋅ ∅ = ∅.
+Lemma setA0r (X : Σ) : 
+    X ⋅ ∅ = ∅.
 Proof.
     apply extension; apply /subsetP => x.
     +   move /setAP => [_ [y [_ [F _]]]].
@@ -137,7 +130,7 @@ Proof.
 Qed.     
 
 
-Lemma cat1A (x y : finStr) :
+(* Lemma cat1A (x y : (@finStr Σ)) :
     [set x ++ y : finStr] = [set x] ⋅ [set y].
 Proof.
     apply extension; apply /subsetP => a.
@@ -145,7 +138,7 @@ Proof.
         repeat split;apply /set1P => //.
     move /setAP => [x0 [y0 [/set1P Hx0 [/set1P Hy0 Ha]]]]; 
         subst; apply /set1P => //.
-Qed.
+Qed. *)
 
 Lemma enum_nil {T : finType}:
     [set x in ([::] : seq T)] = set0.
@@ -154,7 +147,7 @@ Proof.
 Qed.  
 
 Lemma set0A : 
-    ∅ ⋅ ∅ = ∅.
+    ∅ ⋅ ∅ = (∅ : Σ).
 Proof.
     apply extension; apply /subsetP => x.
     +   move /setAP => [_ [y [_ [Hy _]]]].
@@ -162,14 +155,18 @@ Proof.
     +   move => F; move : (in_set0 x); rewrite F => //.
 Qed.
 
+
+
 Lemma set0K : 
-    ∅^* = [set ϵ].
+    (∅ : Σ)^* = [set ϵ].
 Proof.
     apply extension; apply /subsetP => x; first last.
-    +   move /set1P ->; apply /setKP; exists 0 => /=; apply /set1P => //.
+    +   move /set1P ->; apply /setKP; exists 0; apply /setEP => //.
     +   move /setKP => [n Hn]; move : Hn.
-        induction n => //=.
-        rewrite setA0r => F; move : (in_set0 x); rewrite F => //.
+        induction n => /=.
+        -   move /setEP /eqP ->; apply /set1P => //.
+        -   move /setEP /setAP => [a [b [Ha [Hb H]]]].
+            move : (in_set0 b); rewrite Hb=> //.
 Qed.  
 
 
@@ -182,29 +179,34 @@ Proof.
     move => X x xx Hx /setKP [n Hxx].
     apply /setKP.
     exists (S n) => /=.
+    apply /setEP.
     apply /setAP; exists xx, x; repeat split => //.
 Qed.    
 
-Lemma setE1 X : X^1 = X.
+Lemma setE1 (X : Σ) : 
+    X^1 = X.
 Proof.
-    by simpl; rewrite setAnill.
+    apply extension; apply /subsetP => x.
+    +   move /setEP /setAP => [n [x_ [Hn [Hx_ Hnx]]]].
+        move /setEP : Hn; move /eqP => nn; subst => //.
+    +   move => H; apply /setEP /setAP.
+        exists ϵ, x; repeat split => //.
+        apply /setEP => //.
 Qed.
 
 
 
-Lemma setEA : forall X n m,
-    X^n ⋅ X^m = X^(n + m).
+Lemma setEA : forall (X : Σ) n m,
+    (X^n) ⋅ (X^m) = X^(n + m).
 Proof.
 Admitted.
 
-Lemma setEE : forall X n m,
+Lemma setEE : forall (X : Σ) n m,
     (X^n)^m = X^(n*m).
 Proof.
-    move => X n; induction n => /=.
-    +   elim => [|m Hm] => //=.
-        rewrite Hm.
-        rewrite setAnilr => //. 
 Admitted.
+
+End Properties.
 
 
 

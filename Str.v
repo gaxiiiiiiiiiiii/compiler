@@ -1,27 +1,37 @@
-
+From mathcomp Require Export ssrnat eqtype ssrbool.
 Require Export Base.
-From mathcomp Require Import ssrnat eqtype.
-Require Wf.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-
-
 
 (* 各種方の定義 *)
 (* symbol     : 記号 *)
 (* seq symbol : 文字列 *)
 (* Σ          : 文字列の有限集合 *)
 
-Axiom symbol : finType.
-Axiom str : seq (seq symbol).
 
-Axiom uniq_str : uniq str.
-Axiom mem_str : forall x : seq symbol, x \in str.
-Definition str_finMixin := UniqFinMixin uniq_str mem_str. 
-Canonical finStr := FinType _ str_finMixin.
+Section Str.
+
+Parameter symbol : finType.
+Parameter base_str : seq (seq symbol).
+
+Axiom uniq_str : uniq base_str.
+Axiom mem_str : forall x : seq symbol, x \in base_str.
+Definition str_finMixin := UniqFinMixin uniq_str mem_str.
+Canonical finStr := FinType (seq symbol) str_finMixin.
 
 Definition Σ := {set finStr}.
-Definition ϵ : Σ := [set (nil : finStr)].
+Definition ϵ : finStr := nil.
+
+End Str.
+
+
+
+
+
+Ltac str_ind R := rewrite -(set_enum R); induction (enum R). 
+Ltac nil_set0 := rewrite -enum_set0; rewrite (set_enum set0).  
+
+
 
 
 (* 文字列の結合を文字列集合へ拡張 *)
@@ -49,17 +59,18 @@ Qed.
 
 Fixpoint setE X n : Σ :=
     match n with
-    | O => ϵ 
+    | O => [set ϵ] 
     | S n' => setE X n' ⋅ X
     end.
 Notation "X ^ n" := (setE X n).
+
 
 Axiom setK : Σ -> Σ.
 Notation "X ^*" := (setK X)(at level 30).
 Axiom setKP : forall (X : Σ) (x : finStr),
     reflect (exists n, x ∈ X ^ n)(x ∈ X^* ).
 
-Notation "X ^+" := (X^* // ϵ)(at level 30).    
+Notation "X ^+" := (X^* // [set ϵ])(at level 30).    
 
 
 
@@ -86,7 +97,7 @@ Proof.
 Qed.
 
 
-Lemma setAnill X : ϵ ⋅ X = X.
+Lemma setAnill X : [set ϵ] ⋅ X = X.
 Proof.
     apply extension; apply /subsetP => x H.
     +   move /setAP : H => [n [x_ [Hn [Hx Hnx]]]].
@@ -97,7 +108,7 @@ Proof.
         apply /set1P => //.
 Qed.
 
-Lemma setAnilr X : X ⋅ ϵ = X.
+Lemma setAnilr X : X ⋅ [set ϵ] = X.
 Proof.
     apply extension; apply /subsetP => x H.
     +   move /setAP : H => [x_ [n [Hx [Hn Hxn]]]].
@@ -137,9 +148,9 @@ Proof.
 Qed.
 
 Lemma enum_nil {T : finType}:
-    [set x in ([::] : seq T)] = ∅.
+    [set x in ([::] : seq T)] = set0.
 Proof.
-    rewrite -enum_set0 (set_enum ∅) => //.
+    rewrite -enum_set0 (set_enum set0) => //.
 Qed.  
 
 Lemma set0A : 
@@ -152,14 +163,17 @@ Proof.
 Qed.
 
 Lemma set0K : 
-    ∅^* = ϵ.
+    ∅^* = [set ϵ].
 Proof.
     apply extension; apply /subsetP => x; first last.
     +   move /set1P ->; apply /setKP; exists 0 => /=; apply /set1P => //.
     +   move /setKP => [n Hn]; move : Hn.
         induction n => //=.
         rewrite setA0r => F; move : (in_set0 x); rewrite F => //.
-Qed.        
+Qed.  
+
+
+
 
 
 
@@ -170,3 +184,28 @@ Proof.
     exists (S n) => /=.
     apply /setAP; exists xx, x; repeat split => //.
 Qed.    
+
+Lemma setE1 X : X^1 = X.
+Proof.
+    by simpl; rewrite setAnill.
+Qed.
+
+
+
+Lemma setEA : forall X n m,
+    X^n ⋅ X^m = X^(n + m).
+Proof.
+Admitted.
+
+Lemma setEE : forall X n m,
+    (X^n)^m = X^(n*m).
+Proof.
+    move => X n; induction n => /=.
+    +   elim => [|m Hm] => //=.
+        rewrite Hm.
+        rewrite setAnilr => //. 
+Admitted.
+
+
+
+

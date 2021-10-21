@@ -11,7 +11,7 @@ Inductive Reg {finStr : str}{lo : lang_op finStr}{Σ : lang}: Σ -> Prop :=
     | regU X Y : Reg X -> Reg Y -> Reg (X ∪ Y)
     | regA X Y : Reg X -> Reg Y -> Reg (X ⋅ Y)
     | regK X : Reg X -> Reg (X ^*).
-    
+
 
 Record reg {finStr : str}{lo : lang_op finStr}: Type := mkReg {
     L :> lang;
@@ -148,6 +148,8 @@ Proof.
     +   by apply reg1.
 Qed. *)
 
+
+End Properties.
 
 
 

@@ -8,17 +8,18 @@ Unset Printing Implicit Defensive.
 Module Str.
 
 Record str: Type := mkStr {
-    char : finType;
-    base : seq (seq char);
+    char_ : finType;
+    base : seq (seq char_);
     uniq_str : uniq base;
-    total_str : forall x : seq char, x \in base;
+    total_str : forall x : seq char_, x \in base;
 }.
 
 
 Coercion FinStr (string : str) :=
-    FinType (seq (char string)) (UniqFinMixin (uniq_str  string) (total_str  string)).
+    FinType (seq (char_ string)) (UniqFinMixin (uniq_str  string) (total_str  string)).
 
 Canonical FinStr.
+
 
 End Str.
 
@@ -26,33 +27,39 @@ End Str.
 Module Lang.
 Export Str.
 
+
+
 Record lang : Type := mkLang {
     finStr_ : str;
-    setA : {set finStr_} -> {set finStr_} -> {set finStr_};
-    setE : {set finStr_} -> nat -> {set finStr_};
-    setK : {set finStr_} -> {set finStr_};
+    setA_ : {set finStr_} -> {set finStr_} -> {set finStr_};
+    setE_ : {set finStr_} -> nat -> {set finStr_};
+    setK_ : {set finStr_} -> {set finStr_};
     setAP_ : forall (X Y : {set finStr_}) xy,
-            reflect (exists x y, x ∈ X /\ y ∈ Y /\ xy = x ++ y)(xy ∈ setA X Y);
+            reflect (exists x y, x ∈ X /\ y ∈ Y /\ xy = x ++ y)(xy ∈ setA_ X Y);
     setEP_ : forall (X : {set finStr_}) n xx,
             reflect 
                 (match n with 
                     | O => xx == [::]
-                    | S n' => xx ∈ setA (setE X n') X
+                    | S n' => xx ∈ setA_ (setE_ X n') X
                 end)
-                (xx ∈ setE X n);
+                (xx ∈ setE_ X n);
     setKP_ : forall (X : {set finStr_}) xx,
-            reflect (exists n, xx ∈ setE X n)(xx ∈ setK X)
+            reflect (exists n, xx ∈ setE_ X n)(xx ∈ setK_ X)
 
 }.
 
-Coercion Lang (l : lang) := {set (finStr_ l)}.
-Notation "X ⋅ Y" := (setA _ X Y)(at level 30).
-Notation "X ^ n" := (setE _ X n).
-Notation "X ^*"  := (setK _ X)(at level 30).
-Definition setAP {Σ : lang} := setAP_ Σ.
-Definition setEP {Σ : lang} := setEP_ Σ.
-Definition setKP {Σ : lang} := setKP_ Σ.
-Definition ϵ {Σ : lang} : finStr_ Σ := [::].
+Coercion Lang (Σ : lang) := {set (finStr_ Σ)}.
+Notation finStr := (finStr_ _).
+Notation char := (char_ finStr).
+Notation "X ⋅ Y" := (setA_ _ X Y)(at level 30).
+Notation "X ^ n" := (setE_ _ X n).
+Notation "X ^*"  := (setK_ _ X)(at level 30).
+Notation setAP := (setAP_ _).
+Notation setEP := (setEP_ _).
+Notation setKP := (setKP_ _).
+Notation ϵ := ([::] : finStr).
+
+
 
 
 End Lang.
@@ -64,7 +71,6 @@ Section Properties.
 Import Lang.
 
 Variable Σ : lang.
-Notation finStr := (finStr_ Σ).
 
 
 Lemma setAA (X Y Z : Σ):
@@ -72,7 +78,7 @@ Lemma setAA (X Y Z : Σ):
 Proof.
     apply extension; apply /subsetP => xyz H.
     +   move /setAP : H => [x [yz [Hx [Hyz H]]]].
-        move /setAP : Hyz => [y [z [Hy [Hz Hyz]]]].
+        move /setAP : Hyz => [y [z [Hy [Hz Hyz]]]].                
         rewrite Hyz in H.
         rewrite catA in H.
         apply /setAP; exists (x ++ y), z; split; [|split] => //.

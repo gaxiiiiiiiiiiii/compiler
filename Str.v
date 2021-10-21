@@ -7,16 +7,16 @@ Unset Printing Implicit Defensive.
 
 
 
-Record str: Type := mkStr {
-    char_ : finType;
-    base : seq (seq char_);
+Class str: Type := mkStr {
+    char : finType;
+    base : seq (seq char);
     uniq_str : uniq base;
-    total_str : forall x : seq char_, x \in base;
+    total_str : forall x : seq char, x \in base;
 }.
 
 
 Coercion FinStr (string : str) :=
-    FinType (seq (char_ string)) (UniqFinMixin (uniq_str  string) (total_str  string)).
+    FinType (seq (@char string)) (UniqFinMixin (@uniq_str  string) (@total_str  string)).
 
 Canonical FinStr.
 
@@ -32,6 +32,7 @@ Class lang_op (finStr : str): Type := {
 Notation "X ⋅ Y" := (setA X Y)(at level 30).
 Notation "X ^ n" := (setE X n).
 Notation "X ^*"  := (setK X)(at level 30).
+Notation ϵ := [::].
 
 
 
@@ -52,7 +53,8 @@ Class lang {finStr : str} {lo : lang_op finStr}: Type := mkLang {
 
 Coercion Lang {finStr : str} {lo : lang_op finStr}(Σ : lang ) := {set finStr}.
 
-Notation ϵ := [::].
+
+
 
 
 
@@ -60,6 +62,8 @@ Notation ϵ := [::].
 Section Properties.
 
 Context (finStr : str) (lo : lang_op finStr) (Σ : lang).
+
+
 
 
 
@@ -80,6 +84,8 @@ Proof.
         apply /setAP; exists x, (y ++ z); split; [|split] => //.
         apply /setAP; exists y, z; split; [|split] => //.
 Qed.
+
+
 
 
 Lemma setAnill (X : Σ) : 
@@ -190,17 +196,72 @@ Proof.
         apply /setEP => //.
 Qed.
 
+Lemma setE0 (X : Σ) :
+    X^0 = [set ϵ].
+Proof.
+    apply extension; apply /subsetP => x.
+    +   move /setEP /eqP ->; apply /set1P => //.
+    +   move /set1P ->; apply /setEP => //.
+Qed.
+
+Lemma setES (X : Σ) n:
+    X^(n + 1) = (X^n) ⋅ X.
+Proof.
+    induction n.
+    +   rewrite addnC addn0 setE0 setAnill.
+        apply extension; apply /subsetP => x.
+        -   move /setEP /setAP => [e [y [He [Hy H]]]].
+            move /setEP : He; move /eqP => H0.
+            subst e.
+            rewrite cat0s in H; subst y => //.
+        -   move => H; apply /setEP /setAP.
+            exists ϵ, x; repeat split => //.
+            apply /setEP => //.
+    +   apply extension; apply /subsetP => x.
+        -   rewrite addn1.
+            move /setEP.
+            rewrite -addn1 => //.
+        -   move => H.
+            rewrite addn1.
+            apply /setEP => //.
+Qed.            
+
+
+
+Lemma setEC (X : Σ) n:
+    X ⋅ (X ^ n)  = (X ^n) ⋅ X.
+Proof.
+    induction n.
+    +   rewrite setE0 setAnill setAnilr => //.
+    +   rewrite -addn1 setES (setAA X _) -IHn => //.
+Qed.    
+
+
 
 
 Lemma setEA : forall (X : Σ) n m,
     (X^n) ⋅ (X^m) = X^(n + m).
 Proof.
-Admitted.
+    move => X n.
+    induction n => m.
+    +   rewrite (addnC 0) addn0 setE0 setAnill => //.
+    +   rewrite -addn1 setES -setAA.
+        rewrite -addnA (addnC 1 m).
+        rewrite  -IHn setES.
+        congr setA.
+        apply setEC.
+Qed.        
+
 
 Lemma setEE : forall (X : Σ) n m,
     (X^n)^m = X^(n*m).
 Proof.
-Admitted.
+    move => X n m; move : n; induction m => n.
+    +   rewrite muln0 !setE0 => //.
+    +   rewrite mulnS -setEA.
+        rewrite -addn1 setES.
+        rewrite -(setEC (X ^n) m) IHm => //.
+Qed.        
 
 End Properties.
 

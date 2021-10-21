@@ -3,20 +3,28 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 
-Inductive Reg : Σ -> Prop :=
+
+Inductive Reg {finStr : str}{lo : lang_op finStr}{Σ : lang}: Σ -> Prop :=
     | reg0 : Reg ∅
     | regnil : Reg [set nil : finStr]
-    | rega (a : symbol) :  Reg [set ([:: a] : finStr)]   
+    | rega (a : char) :  Reg [set ([:: a] : finStr)]   
     | regU X Y : Reg X -> Reg Y -> Reg (X ∪ Y)
     | regA X Y : Reg X -> Reg Y -> Reg (X ⋅ Y)
     | regK X : Reg X -> Reg (X ^*).
 
-
-
-Record reg : Type := mkReg {
-    str :> Σ;
-    axiom :  Reg str
+Record reg {finStr : str}{lo : lang_op finStr}: Type := mkReg {
+    L :> lang;
+    axiom : forall str : L, Reg str
 }.
+Coercion Lang {finStr : str} {lo : lang_op finStr} (r : @reg finStr lo) := {set finStr}.
+
+
+
+Section Properties.
+
+Context (finStr : str) (lo : lang_op finStr) (Σ : lang).
+
+
 
 
 Lemma cat1A (x y : finStr) :
@@ -125,17 +133,19 @@ Qed.
 Lemma regE R n :  Reg R -> Reg (R^n).
 Proof.
     induction n => /= H.
-    +   apply reg1.
-    +   constructor => //; apply IHn => //.
+    +   rewrite setE0; apply reg1.
+    +   rewrite -addn1.
+        rewrite setES.        
+        constructor => //; apply IHn => //.
 Qed.
 
-Lemma regK' R : Reg R -> Reg (R^+).
+(* Lemma regK' R : Reg R -> Reg (R^+).
 Proof.
     move => H.
     apply regD.
     +   by apply regK.
     +   by apply reg1.
-Qed.
+Qed. *)
 
 
 

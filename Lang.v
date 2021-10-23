@@ -20,9 +20,8 @@ Coercion to_FinStr (string : FinStr) :=
 
 Canonical to_FinStr.
 
-
-
-Class Lang {finStr : FinStr} : Type := mkLang {
+Class Lang : Type := mkLang {
+    finStr : FinStr;
     setA : {set finStr} -> {set finStr} -> {set finStr};
     setE : {set finStr} -> nat -> {set finStr};
     setK : {set finStr} -> {set finStr};
@@ -39,20 +38,17 @@ Class Lang {finStr : FinStr} : Type := mkLang {
             reflect (exists n, xx ∈ setE X n)(xx ∈ setK X);
 }.
 
+
 Notation "X ⋅ Y" := (setA X Y)(at level 30).
 Notation "X ^ n" := (setE X n).
 Notation "X ^*"  := (setK X)(at level 30).
 Notation ϵ := [::].
 
-Coercion to_Lang {finStr : FinStr} (_ : Lang) := {set finStr}.
-
+Coercion to_Lang  (_ : Lang) := {set finStr}.
 
 Section Properties.
 
-Variable (finStr : FinStr) (Σ : Lang).
-
-
-
+Context  (Σ : Lang).
 
 
 Lemma setAA X Y Z :
@@ -76,7 +72,7 @@ Qed.
 
 
 
-Lemma setAnill (X : Σ) : 
+Lemma setAel X : 
     [set ϵ] ⋅ X = X.
 Proof.
     apply extension; apply /subsetP => x H.
@@ -88,7 +84,7 @@ Proof.
         apply /set1P => //.
 Qed.
 
-Lemma setAnilr (X : Σ) : 
+Lemma setAer X : 
     X ⋅ [set ϵ] = X.
 Proof.
     apply extension; apply /subsetP => x H.
@@ -196,7 +192,7 @@ Lemma setES (X : Σ) n:
     X^(n + 1) = (X^n) ⋅ X.
 Proof.
     induction n.
-    +   rewrite addnC addn0 setE0 setAnill.
+    +   rewrite addnC addn0 setE0 setAel.
         apply extension; apply /subsetP => x.
         -   move /setEP /setAP => [e [y [He [Hy H]]]].
             move /setEP : He; move /eqP => H0.
@@ -220,7 +216,7 @@ Lemma setEC (X : Σ) n:
     X ⋅ (X ^ n)  = (X ^n) ⋅ X.
 Proof.
     induction n.
-    +   rewrite setE0 setAnill setAnilr => //.
+    +   rewrite setE0 setAel setAer => //.
     +   rewrite -addn1 setES (setAA X _) -IHn => //.
 Qed.    
 
@@ -232,7 +228,7 @@ Lemma setEA : forall (X : Σ) n m,
 Proof.
     move => X n.
     induction n => m.
-    +   rewrite (addnC 0) addn0 setE0 setAnill => //.
+    +   rewrite (addnC 0) addn0 setE0 setAel => //.
     +   rewrite -addn1 setES -setAA.
         rewrite -addnA (addnC 1 m).
         rewrite  -IHn setES.

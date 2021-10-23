@@ -1,10 +1,10 @@
-Require Export Str.
+Require Export Lang.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section Reg.
 
-Context {finStr : str}{lo : lang_op finStr}{Σ : lang}.
+Context {Σ : Lang}.
 
 Inductive Reg : Σ -> Prop :=
     | reg0 : Reg ∅

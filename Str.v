@@ -7,7 +7,7 @@ Unset Printing Implicit Defensive.
 
 
 
-Class str: Type := mkStr {
+Class FinStr: Type := mkFinStr {
     char : finType;
     base : seq (seq char);
     uniq_str : uniq base;
@@ -15,18 +15,28 @@ Class str: Type := mkStr {
 }.
 
 
-Coercion FinStr (string : str) :=
+Coercion to_FinStr (string : FinStr) :=
     FinType (seq (@char string)) (UniqFinMixin (@uniq_str  string) (@total_str  string)).
 
-Canonical FinStr.
+Canonical to_FinStr.
 
 
 
-
-Class lang_op (finStr : str): Type := {
+Class Lang {finStr : FinStr} : Type := mkLang {
     setA : {set finStr} -> {set finStr} -> {set finStr};
     setE : {set finStr} -> nat -> {set finStr};
     setK : {set finStr} -> {set finStr};
+    setAP : forall (X Y : {set finStr}) xy,
+            reflect (exists x y, x ∈ X /\ y ∈ Y /\ xy = x ++ y)(xy ∈ setA X Y);
+    setEP : forall (X : {set finStr}) n xx,
+            reflect 
+                (match n with 
+                    | O => xx == [::]
+                    | S n' => xx ∈ setA (setE X n') X
+                end)
+                (xx ∈ setE X n);
+    setKP : forall (X : {set finStr}) xx,
+            reflect (exists n, xx ∈ setE X n)(xx ∈ setK X);
 }.
 
 Notation "X ⋅ Y" := (setA X Y)(at level 30).
@@ -34,34 +44,12 @@ Notation "X ^ n" := (setE X n).
 Notation "X ^*"  := (setK X)(at level 30).
 Notation ϵ := [::].
 
-
-
-
-Class lang {finStr : str} {lo : lang_op finStr}: Type := mkLang {
-    setAP : forall (X Y : {set finStr}) xy,
-            reflect (exists x y, x ∈ X /\ y ∈ Y /\ xy = x ++ y)(xy ∈ X ⋅ Y);
-    setEP : forall (X : {set finStr}) n xx,
-            reflect 
-                (match n with 
-                    | O => xx == [::]
-                    | S n' => xx ∈ (X ^ n') ⋅ X
-                end)
-                (xx ∈ X ^ n);
-    setKP : forall (X : {set finStr}) xx,
-            reflect (exists n, xx ∈ X ^ n)(xx ∈ X^*);
-}.
-
-Coercion Lang {finStr : str} {lo : lang_op finStr}(Σ : lang ) := {set finStr}.
-
-
-
-
-
+Coercion to_Lang {finStr : FinStr} (_ : Lang) := {set finStr}.
 
 
 Section Properties.
 
-Context (finStr : str) (lo : lang_op finStr) (Σ : lang).
+Variable (finStr : FinStr) (Σ : Lang).
 
 
 
@@ -132,15 +120,15 @@ Proof.
 Qed.     
 
 
-(* Lemma cat1A (x y : (@finStr Σ)) :
-    [set x ++ y : finStr] = [set x] ⋅ [set y].
+Lemma cat1A  (x y : finStr) :
+    [set x ++ y] = [set x] ⋅ [set y].
 Proof.
     apply extension; apply /subsetP => a.
     move /set1P ->; apply /setAP; exists x, y; 
         repeat split;apply /set1P => //.
     move /setAP => [x0 [y0 [/set1P Hx0 [/set1P Hy0 Ha]]]]; 
         subst; apply /set1P => //.
-Qed. *)
+Qed. 
 
 Lemma enum_nil {T : finType}:
     [set x in ([::] : seq T)] = set0.

@@ -2,9 +2,11 @@ Require Export Str.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Section Reg.
 
+Context {finStr : str}{lo : lang_op finStr}{Σ : lang}.
 
-Inductive Reg {finStr : str}{lo : lang_op finStr}{Σ : lang}: Σ -> Prop :=
+Inductive Reg : Σ -> Prop :=
     | reg0 : Reg ∅
     | regnil : Reg [set nil : finStr]
     | rega (a : char) :  Reg [set ([:: a] : finStr)]   
@@ -13,18 +15,9 @@ Inductive Reg {finStr : str}{lo : lang_op finStr}{Σ : lang}: Σ -> Prop :=
     | regK X : Reg X -> Reg (X ^*).
 
 
-Record reg {finStr : str}{lo : lang_op finStr}: Type := mkReg {
-    L :> lang;
-    axiom : forall str : L, Reg str
-}.
-Coercion Lang {finStr : str} {lo : lang_op finStr} (r : @reg finStr lo) := {set finStr}.
+Definition reg := {X : Σ | Reg X}.
 
-
-
-Section Properties.
-
-Context (finStr : str) (lo : lang_op finStr) (Σ : lang).
-
+Coercion to_lang (r : reg) : {set finStr} := let: exist X H := r in X.
 
 
 
@@ -50,13 +43,12 @@ Proof.
 Qed.  
 
 
-Lemma regI : forall (R S : Σ),
-    Reg R -> Reg S -> Reg (R ∩ S).
+
+Lemma regI (R S : reg) : Reg (R ∩ S).
 Proof.
-    move => R S HR HS.
-    move : S HS => /=.
+    move : S.
     rewrite -(set_enum R).
-    induction (enum R) => S HS.
+    induction (enum R) => S.
     +   rewrite -enum_set0.
         rewrite (set_enum ∅).
         rewrite set0I; constructor.
@@ -79,12 +71,11 @@ Qed.
 
 
 
-Lemma regD (R S : Σ) :
-    Reg R -> Reg S -> Reg (R // S).
+Lemma regD (R S : reg) : Reg (R // S).
 Proof.
-    move => HR HS; move : S HS.
+    move : S.
     rewrite -(set_enum R).
-    induction (enum R) => S HS.    
+    induction (enum R) => S.    
     +   rewrite -enum_set0.
         rewrite (set_enum ∅).
         rewrite set0D; constructor.
@@ -106,7 +97,9 @@ Proof.
                         -   rewrite -Heqb => //.
                 move ->; apply reg1.
         -   apply IHl => //.
-Qed.              
+Qed. 
+
+
 
 
 Lemma regT : Reg setT.
@@ -120,24 +113,28 @@ Proof.
         apply reg1.
 Qed.   
 
-Lemma regTD R : Reg R -> Reg (setT // R).
+Definition regT_ : reg := exist _ setT regT.
+Print regT.    
+
+Lemma regTD (R : reg) : Reg (regT_ // R).
 Proof.
-    move => H; apply regD => //; apply regT.
+    apply regD => //; apply regT.
 Qed.
 
-Lemma regC R : Reg R -> Reg (¬ R).
+Lemma regC (R : reg) : Reg (¬ R).
 Proof.
     rewrite -setTD; apply regTD.
 Qed.
 
 
-Lemma regE R n :  Reg R -> Reg (R^n).
+Lemma regE (R : reg) n :Reg (R^n).
 Proof.
-    induction n => /= H.
+    induction n => /=.
     +   rewrite setE0; apply reg1.
     +   rewrite -addn1.
         rewrite setES.        
-        constructor => //; apply IHn => //.
+        constructor => //.
+        destruct R => //.
 Qed.
 
 (* Lemma regK' R : Reg R -> Reg (R^+).
@@ -149,7 +146,8 @@ Proof.
 Qed. *)
 
 
-End Properties.
+
+End Reg.
 
 
 

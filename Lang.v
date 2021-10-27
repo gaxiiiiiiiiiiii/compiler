@@ -1,24 +1,25 @@
-From mathcomp Require Export ssrnat eqtype ssrbool.
+From mathcomp Require Export ssrnat eqtype.
 Require Export Base.
-Unset Strict Implicit.
-Unset Printing Implicit Defensive.
+
 
 
 
 
 
 Class FinStr: Type := mkFinStr {
-    char : finType;
-    base : seq (seq char);
+    char_ : finType;
+    base : seq (seq char_);
     uniq_str : uniq base;
-    total_str : forall x : seq char, x \in base;
+    total_str : forall x, x ∈ base;
 }.
 
 
-Coercion to_FinStr (string : FinStr) :=
-    FinType (seq (@char string)) (UniqFinMixin (@uniq_str  string) (@total_str  string)).
+Coercion to_FinStr (string : FinStr) := 
+    FinType (seq char_) (UniqFinMixin uniq_str total_str).
 
 Canonical to_FinStr.
+
+
 
 Class Lang : Type := mkLang {
     finStr : FinStr;
@@ -39,6 +40,7 @@ Class Lang : Type := mkLang {
 }.
 
 
+Notation char := (@char_ (@finStr _)).
 Notation "X ⋅ Y" := (setA X Y)(at level 30).
 Notation "X ^ n" := (setE X n).
 Notation "X ^*"  := (setK X)(at level 30).
@@ -46,9 +48,12 @@ Notation ϵ := [::].
 
 Coercion to_Lang  (_ : Lang) := {set finStr}.
 
+
+
 Section Properties.
 
 Context  (Σ : Lang).
+
 
 
 Lemma setAA X Y Z :
@@ -248,7 +253,3 @@ Proof.
 Qed.        
 
 End Properties.
-
-
-
-

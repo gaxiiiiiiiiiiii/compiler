@@ -1,6 +1,6 @@
-From mathcomp Require Export fintype ssrbool seq choice ssreflect finset.
-Unset Strict Implicit.
-Unset Printing Implicit Defensive.
+From mathcomp Require Export fintype ssrool seq choice ssreflect finset.
+(* Unset Strict Implicit.
+Unset Printing Implicit Defensive. *)
 
 
 Notation "∅" := set0.

@@ -1,23 +1,30 @@
 Require Export Lang.
-Unset Strict Implicit.
-Unset Printing Implicit Defensive.
+
 
 Section Reg.
 
+
 Context {Σ : Lang}.
+
+
 
 Inductive Reg : Σ -> Prop :=
     | reg0 : Reg ∅
-    | regnil : Reg [set nil : finStr]
-    | rega (a : char) :  Reg [set ([:: a] : finStr)]   
+    | regnil : Reg [set ϵ]
+    | rega (a : char) :  Reg [set [:: a]]   
     | regU X Y : Reg X -> Reg Y -> Reg (X ∪ Y)
     | regA X Y : Reg X -> Reg Y -> Reg (X ⋅ Y)
     | regK X : Reg X -> Reg (X ^*).
 
 
+
 Definition reg := {X : Σ | Reg X}.
 
-Coercion to_lang (r : reg) : {set finStr} := let: exist X H := r in X.
+Coercion to_set (r : reg) : {set finStr} := let: exist X H := r in X.
+(* Coercion to_lang (r : reg) : Σ := let: exist X H := r in X. *)
+
+
+
 
 
 
@@ -114,7 +121,7 @@ Proof.
 Qed.   
 
 Definition regT_ : reg := exist _ setT regT.
-Print regT.    
+
 
 Lemma regTD (R : reg) : Reg (regT_ // R).
 Proof.
@@ -146,39 +153,4 @@ Proof.
 Qed. *)
 
 
-
 End Reg.
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-    
-
-
-
-
-
-    
-
-
-
-
-
-
-  
-
-   

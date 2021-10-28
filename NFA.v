@@ -1,5 +1,5 @@
-
 Require Export Lang Reg.
+From mathcomp Require Import finset.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
@@ -7,7 +7,9 @@ Section NFA.
 Context (L : Lang) (state : finType).
 
 
-hogehoge
+
+
+
 
 
 
@@ -50,6 +52,9 @@ Canonical chars_eqType := EqType chars chars_eqMixin.
 
 
   
+Definition subsetOf {T : finType} (X : {set T}) := {x | x ∈ X}.
+Notation  "{ 'sub' X }" := (subsetOf X).
+
 
 
 
@@ -66,7 +71,7 @@ Class nfa := mkNfa{
 Reserved Notation "p -ϵ-> q"(at level 50).
 Inductive Closure {N : nfa}: state -> state -> Prop :=
     | CL_refl p : p -ϵ-> p
-    | CL_single p q : q ∈ δ p ϵ_ -> p -ϵ-> q
+    | CL_single p q :  q ∈ δ p ϵ_ -> p -ϵ-> q
     | CL_trans p q r : p -ϵ-> q -> q -ϵ-> r ->  p -ϵ-> r
     where "p -ϵ-> q" := (Closure p q).
 
@@ -80,8 +85,11 @@ Axiom closureP : forall (N : nfa) (P : {set state}) q,
 Fixpoint δ' {N : nfa}  (p : state) (s : finStr) : {set state} :=
     match s with
     | [::] => closure [set p]
-    | a :: w => closure (bigcup [set δ x (char1 a) | x in δ' p w])   
+    | a :: w => closure (\bigcup_(x in  δ' p w) (δ x (char1 a)))
+    (* closure (bigcup [set δ x (char1 a) | x in δ' p w])    *)
     end.
+
+
         
 
 Definition LangOf (N : nfa) := 
@@ -106,104 +114,136 @@ Qed.
 
 
 
+Lemma nfa0 : exists N, LangOf N = ∅.
+Proof.
+    pose N := (mkNfa dQ p (fun _ _ => ∅) ∅ (sub0set dQ) pQ).
+    exists N.
+    rewrite /LangOf.
+    apply extension; apply /subsetP => x. 
+    -   rewrite in_set setI0 => /=.
+        move /eqP => F.
+        contradiction F => //.
+    -   move : (in_set0 x) -> => //.
+Qed. 
+
+
+
+Lemma nfae : exists N, LangOf N = [set ϵ].
+Proof.
+    pose f := fun (s : state) (c : chars)=> if (c == ϵ_) && (s == p) then [set q] else ∅.
+    pose N := (mkNfa dQ p f dF dFQ pQ).
+    exists N.
+    rewrite /LangOf.
+    apply extension; apply /subsetP => w.        
+    -   rewrite in_set => /=.
+        move /set0Pn => [x /setIP [Hx /set1P H1]]; subst x.
+        move : q Hx; induction w => q0 Hx.
+        *   apply /set1P => //. 
+        *   move /(closureP N _ q0) : Hx => [p0 [Hp pq0]].
+            move /bigcupP : Hp => [s Hs Hp].
+            rewrite /δ /N /f /= in Hp.
+            rewrite (in_set0 p0) in Hp; inversion Hp.
+        -  move /set1P ->.
+        rewrite in_set.
+        apply /eqP => /= F.
+        have : (q ∈ ∅).
+            rewrite -F.
+            apply /setIP; split.
+            *   apply /closureP.
+                exists p; split.
+                apply /set1P => //.
+                apply CL_single => /=.
+                rewrite /f => /=.
+                rewrite eq_refl.
+                apply /set1P => //.
+            *   apply /set1P => //.
+        rewrite (in_set0 q) => //.  
+Qed. 
+
+Lemma nfa1 a : exists N, LangOf N = [set [::a]].
+Proof.
+    pose f := fun (s : state) (c : chars)=> if (c == char1 a ) && (s == p) then [set q] else ∅.
+    pose N := (mkNfa dQ p f dF dFQ pQ).
+    have F0 : forall r, r ∈ dQ -> ~ exists s, r <> s /\ r -ϵ-> s.        
+        move => r H [s [nrs sr]].
+        case /set2P : H => r_; subst.
+        +   induction sr.
+            -   contradiction nrs => //.
+            -   rewrite (in_set0 q0) in H; inversion H.
+            -   remember (p1 == q0); symmetry in Heqb.
+                destruct b; move /eqP : Heqb => H; subst.
+                *   remember (q0 == r); symmetry in Heqb.
+                    destruct b; move /eqP : Heqb => H; subst.
+                    +   contradiction nrs => //.
+                    +   apply IHsr2 => //.
+                *   apply IHsr1 => //.
+        +   induction sr.
+            -   contradiction nrs => //.
+            -   rewrite (in_set0 q0) in H; inversion H.
+            -   remember (p1 == q0); symmetry in Heqb.
+                destruct b; move /eqP : Heqb => H; subst.
+                *   remember (q0 == r); symmetry in Heqb.
+                    destruct b; move /eqP : Heqb => H; subst.
+                    +   contradiction nrs => //.
+                    +   apply IHsr2 => //.
+                *   apply IHsr1 => //.
+    exists N.
+    rewrite /LangOf.
+    apply extension; apply /subsetP => w; first last.
+    -   move /set1P ->.
+        rewrite in_set => /=.
+        apply /eqP => F.
+        have : (q ∈ ∅).
+            rewrite -F.
+            apply /setIP; split; first last.
+            *   apply /set1P => //.
+            *   apply /closureP.
+                exists q; split.
+                +   apply /bigcupP.
+                    exists p.
+                    -   apply /closureP.
+                        exists p; split; [apply /set1P => //|constructor].
+                    -   rewrite /f; rewrite !eq_refl => /=; apply /set1P => //.           
+                +   constructor.
+        rewrite (in_set0 q) => //.
+    -   rewrite in_set => /=; rewrite /dF.
+        move /set0Pn => [p0 /setIP [Hp /set1P pF]]; subst p0.
+        induction w.
+        *   move /closureP : Hp => [p1 [/set1P H1 pq]]; subst p1; simpl in pq.
+            contradiction (F0 p pQ).
+            exists q => //.           
+        *   move /closureP : Hp => [s [Hs sq]].
+            move /bigcupP : Hs => [r Hr Hs].
+            destruct w.
+            +   remember (a == a0); symmetry in Heqb.
+                destruct b; move /eqP in Heqb.
+                -   subst a0; apply /set1P => //.
+                -   rewrite /δ /N /f in Hs.
+                    suff F : char1 a0 == char1 a = false.
+                        rewrite F /= in Hs.
+                        rewrite (in_set0 s) in Hs; inversion Hs.
+                    apply /eqP => F; inversion F.
+                    contradiction Heqb => //.
+            +   rewrite /δ /N /f in Hs.
+                move /closureP : Hr => [t[Ht tr]].
+                move /bigcupP : Ht => [u Hu Ht].
+                rewrite /δ /N /f in Ht.
+                admit.
+Admitted.             
+
+
+
 Theorem reg_nfa :
     forall l , Reg l -> exists N : nfa, LangOf N = l.
 Proof.
     move => l Hl; induction Hl.
-    +   pose N := (mkNfa dQ p (fun _ _ => ∅) ∅ (sub0set dQ) pQ).
-        exists N.
-        rewrite /LangOf.
-        apply extension; apply /subsetP => x. 
-        -   rewrite in_set setI0 => /=.
-            move /eqP => F.
-            contradiction F => //.
-        -   move : (in_set0 x) -> => //.
-    +   pose f := fun (s : state) (c : chars)=> if (c == ϵ_) && (s == p) then [set q] else ∅.
-        pose N := (mkNfa dQ p f dF dFQ pQ).
-        exists N.
-        rewrite /LangOf.
-        apply extension; apply /subsetP => w.        
-        -   rewrite in_set => /=.
-            move /set0Pn => [x /setIP [Hx /set1P H1]]; subst x.
-            move : q Hx; induction w => q0 Hx.
-            *   apply /set1P => //. 
-            *   move /(closureP N _ q0) : Hx => [p0 [Hp pq0]].
-                move /bigcupP : Hp => /= [Y [pY HY]].
-                move /imsetP : HY => [x Hx Yf]; subst Y.
-                rewrite /f in pY.
-                simpl in pY.
-                rewrite (in_set0 p0) in pY; inversion pY.
-         -  move /set1P ->.
-            rewrite in_set.
-            apply /eqP => /= F.
-            have : (q ∈ ∅).
-                rewrite -F.
-                apply /setIP; split.
-                *   apply /closureP.
-                    exists p; split.
-                    apply /set1P => //.
-                    apply CL_single => /=.
-                    rewrite /f => /=.
-                    rewrite eq_refl.
-                    apply /set1P => //.
-                *   apply /set1P => //.
-            rewrite (in_set0 q) => //.            
-    +   pose f := fun (s : state) (c : chars)=> if (c == char1 a ) && (s == p) then [set q] else ∅.
-        pose N := (mkNfa dQ p f dF dFQ pQ).
-        exists N.
-        rewrite /LangOf.
-        apply extension; apply /subsetP => w; first last.
-        -   move /set1P ->.
-            rewrite in_set => /=.
-            apply /eqP => F.
-            have : (q ∈ ∅).
-                rewrite -F.
-                apply /setIP; split; first last.
-                *   apply /set1P => //.
-                *   apply /closureP.
-                    exists q; split.
-                    +   apply /bigcupP.
-                        exists [set q]; split.
-                        -   apply /set1P => //.
-                        -   apply /imsetP.
-                            exists p.
-                            *   apply /closureP.
-                                exists p; split.
-                                +   apply /set1P => //.
-                                +   constructor.
-                            *   rewrite /f.
-                                rewrite !eq_refl => /=.
-                                by [].
-                    +   constructor.
-            rewrite (in_set0 q) => //.
-        -   rewrite in_set => /=; rewrite /dF.
-            Search setI set0.
-            move /set0Pn => [p0 /setIP [Hp /set1P pF]]; subst p0.
-            induction w.
-            *   move /closureP : Hp => [p1 [/set1P H1 pq]]; subst p1; simpl in pq.
-
-                +   case  (npq H0).
-                +   rewrite /δ /N /f /= in H.
-                    rewrite (in_set0 q) in H; inversion H.
-                +   subst.
-                admit.
-            *   admit. *)
-    +   move : IHHl1 => [NX HX].
-        move : IHHl2 => [NY HY].
-        inversion NX as [Qx px fx Fx Hx].
-        inversion NY as [Qy py fy Fy Hy].
-        pose f := fun s c => fx s c ∪ fy s c.
-        pose N := mkNfa state (Qx ∪ Qy) px f (Fx ∪ Fy) (setUSS Hx Hy).
-        exists N.
-        rewrite /LangOf.
-        apply extension; apply /subsetP => z.
-        -   rewrite in_set.
-            move /set0Pn => [xy /setIP [Hxy /setUP bF]].
-            induction z.
-            *   move /closureP : Hxy => [p_ [/set1P pp Hp]]; subst p_; simpl in Hp.
-
-
-
+    +   apply nfa0.        
+    +   apply nfae.    
+    +   apply nfa1.
+    +   admit.
+    +   admit.
+    +   admit.
+Admitted.    
  
 
 

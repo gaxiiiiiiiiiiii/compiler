@@ -19,7 +19,6 @@ Inductive Reg : Σ -> Prop :=
 
 
 Definition reg := {X : Σ | Reg X}.
-
 Coercion to_set (r : reg) : {set finStr} := let: exist X H := r in X.
 (* Coercion to_lang (r : reg) : Σ := let: exist X H := r in X. *)
 

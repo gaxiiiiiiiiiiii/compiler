@@ -1,4 +1,4 @@
-From mathcomp Require Export fintype ssrool seq choice ssreflect finset.
+From mathcomp Require Export fintype  ssrbool seq choice ssreflect finset.
 (* Unset Strict Implicit.
 Unset Printing Implicit Defensive. *)
 
@@ -21,17 +21,11 @@ Qed.
 
 
 Lemma set_enum {T : finType} (A : {set T}) :
-    [set x | x \in enum A] = A.
+    [set x | x ∈ enum A] = A.
 Proof.
     by apply/setP => x; rewrite inE mem_enum .
-Qed.    
+Qed.  
 
-Axiom bigcup : forall {T : finType}, {set {set T}} -> {set T}.
-Axiom bigcupP : forall {T : finType} (XX : {set {set T}}) (X : T),
-    reflect (exists (Y : {set T}), X ∈ Y /\ Y ∈ XX) (X ∈ bigcup XX).
 
-Axiom bigcap : forall {T : finType}, {set {set T}} -> {set T}.
-Axiom bigcapP : forall {T : finType} (XX : {set {set T}}) (X : T),
-    reflect (forall (Y : {set T}), Y ∈ XX -> X ∈ Y) (X ∈ bigcup XX).
 
     

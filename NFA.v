@@ -77,6 +77,7 @@ Inductive Closure {N : nfa}: state -> state -> Prop :=
 
 
 
+
 Axiom closure : forall {N : nfa}, {set state} -> {set state}.
 Axiom closureP : forall (N : nfa) (P : {set state}) q,
     reflect (exists p, p ∈ P /\ p -ϵ-> q) (q ∈ closure P).
